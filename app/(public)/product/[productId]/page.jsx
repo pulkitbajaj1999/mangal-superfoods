@@ -9,19 +9,46 @@ export default function Product() {
 
     const { productId } = useParams();
     const [product, setProduct] = useState();
+    const [loading, setLoading] = useState(true);
     const products = useSelector(state => state.product.list);
 
     const fetchProduct = async () => {
-        const product = products.find((product) => product.id === productId);
-        setProduct(product);
+        // First try from Redux
+        let foundProduct = products.find((product) => product.id === productId);
+        if (foundProduct) {
+            setProduct(foundProduct);
+            setLoading(false);
+            return;
+        }
+
+        // If not in Redux, fetch from API
+        try {
+            const response = await fetch(`/api/products/${productId}`);
+            if (response.ok) {
+                const data = await response.json();
+                setProduct(data);
+            } else {
+                console.error('Product not found');
+            }
+        } catch (error) {
+            console.error('Error fetching product:', error);
+        } finally {
+            setLoading(false);
+        }
     }
 
     useEffect(() => {
-        if (products.length > 0) {
-            fetchProduct()
-        }
+        fetchProduct();
         scrollTo(0, 0)
-    }, [productId,products]);
+    }, [productId, products]);
+
+    if (loading) {
+        return <div>Loading product...</div>;
+    }
+
+    if (!product) {
+        return <div>Product not found</div>;
+    }
 
     return (
         <div className="mx-6">
@@ -33,10 +60,10 @@ export default function Product() {
                 </div>
 
                 {/* Product Details */}
-                {product && (<ProductDetails product={product} />)}
+                <ProductDetails product={product} />
 
                 {/* Description & Reviews */}
-                {product && (<ProductDescription product={product} />)}
+                <ProductDescription product={product} />
             </div>
         </div>
     );

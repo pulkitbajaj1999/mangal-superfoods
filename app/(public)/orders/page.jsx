@@ -2,15 +2,51 @@
 import PageTitle from "@/components/PageTitle"
 import { useEffect, useState } from "react";
 import OrderItem from "@/components/OrderItem";
-import { orderDummyData } from "@/assets/assets";
+import { useSelector } from "react-redux";
 
 export default function Orders() {
 
     const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const user = useSelector(state => state.user.current);
+
+    const fetchOrders = async () => {
+        if (!user) {
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/orders?userId=${user.id}`);
+            if (response.ok) {
+                const data = await response.json();
+                setOrders(data);
+            }
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        setOrders(orderDummyData)
-    }, []);
+        fetchOrders();
+    }, [user]);
+
+    if (!user) {
+        return (
+            <div className="min-h-[70vh] mx-6 flex items-center justify-center">
+                <div className="text-center">
+                    <h2 className="text-2xl font-semibold text-slate-600 mb-4">Please Login</h2>
+                    <p className="text-slate-500">You need to be logged in to view your orders.</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (loading) {
+        return <div>Loading orders...</div>;
+    }
 
     return (
         <div className="min-h-[70vh] mx-6">

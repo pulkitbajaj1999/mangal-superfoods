@@ -1,11 +1,15 @@
 'use client'
-import { Suspense } from "react"
+import { Suspense, useEffect, useState } from "react"
 import ProductCard from "@/components/ProductCard"
 import { MoveLeftIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useSelector } from "react-redux"
+import { useSelector, useDispatch } from "react-redux"
+import { setProduct, setBestSelling } from "@/lib/features/product/productSlice"
 
  function ShopContent() {
+
+    const dispatch = useDispatch()
+    const [loading, setLoading] = useState(true)
 
     // get query params ?search=abc
     const searchParams = useSearchParams()
@@ -14,11 +18,39 @@ import { useSelector } from "react-redux"
 
     const products = useSelector(state => state.product.list)
 
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const response = await fetch('/api/products')
+                if (response.ok) {
+                    const data = await response.json()
+                    dispatch(setProduct(data))
+                    const bestSelling = data.slice().sort((a, b) => b.rating.length - a.rating.length).slice(0, 8)
+                    dispatch(setBestSelling(bestSelling))
+                }
+            } catch (error) {
+                console.error('Error fetching products:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        if (products.length === 0) {
+            fetchProducts()
+        } else {
+            setLoading(false)
+        }
+    }, [dispatch, products.length])
+
     const filteredProducts = search
         ? products.filter(product =>
             product.name.toLowerCase().includes(search.toLowerCase())
         )
         : products;
+
+    if (loading) {
+        return <div>Loading products...</div>
+    }
 
     return (
         <div className="min-h-[70vh] mx-6">

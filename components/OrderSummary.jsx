@@ -1,17 +1,20 @@
 import { PlusIcon, SquarePenIcon, XIcon } from 'lucide-react';
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import AddressModal from './AddressModal';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { addAddress } from '../lib/features/address/addressSlice';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
 const OrderSummary = ({ totalPrice, items }) => {
 
+    const dispatch = useDispatch()
     const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '$';
 
     const router = useRouter();
 
     const addressList = useSelector(state => state.address.list);
+    const user = useSelector(state => state.user.current);
 
     const [paymentMethod, setPaymentMethod] = useState('COD');
     const [selectedAddress, setSelectedAddress] = useState(null);
@@ -19,15 +22,90 @@ const OrderSummary = ({ totalPrice, items }) => {
     const [couponCodeInput, setCouponCodeInput] = useState('');
     const [coupon, setCoupon] = useState('');
 
+    useEffect(() => {
+        const fetchAddresses = async () => {
+            try {
+                const response = await fetch('/api/addresses');
+                if (response.ok) {
+                    const data = await response.json();
+                    data.forEach(addr => dispatch(addAddress(addr)));
+                }
+            } catch (error) {
+                console.error('Error fetching addresses:', error);
+            }
+        }
+
+        if (addressList.length === 0) {
+            fetchAddresses();
+        }
+    }, [dispatch, addressList.length]);
+
     const handleCouponCode = async (event) => {
         event.preventDefault();
         
+        try {
+            const response = await fetch('/api/coupons');
+            if (response.ok) {
+                const coupons = await response.json();
+                const foundCoupon = coupons.find(c => c.code.toLowerCase() === couponCodeInput.toLowerCase());
+                if (foundCoupon) {
+                    setCoupon(foundCoupon);
+                    setCouponCodeInput('');
+                } else {
+                    toast.error('Invalid coupon code');
+                }
+            }
+        } catch (error) {
+            console.error('Error checking coupon:', error);
+            toast.error('Failed to check coupon');
+        }
     }
 
     const handlePlaceOrder = async (e) => {
         e.preventDefault();
 
-        router.push('/orders')
+        if (!user) {
+            toast.error('Please login to place an order');
+            router.push('/login');
+            return;
+        }
+
+        if (!selectedAddress) {
+            toast.error('Please select an address');
+            return;
+        }
+
+        const orderData = {
+            total: coupon ? totalPrice - (coupon.discount / 100 * totalPrice) : totalPrice,
+            userId: user.id,
+            addressId: selectedAddress.id,
+            paymentMethod,
+            isCouponUsed: !!coupon,
+            coupon: coupon || {},
+            orderItems: items.map(item => ({
+                productId: item.id,
+                quantity: item.quantity,
+                price: item.price,
+            })),
+        }
+
+        try {
+            const response = await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData),
+            })
+
+            if (response.ok) {
+                toast.success('Order placed successfully');
+                router.push('/orders');
+            } else {
+                throw new Error('Failed to place order');
+            }
+        } catch (error) {
+            console.error('Error placing order:', error);
+            throw error;
+        }
     }
 
     return (
@@ -47,7 +125,7 @@ const OrderSummary = ({ totalPrice, items }) => {
                 {
                     selectedAddress ? (
                         <div className='flex gap-2 items-center'>
-                            <p>{selectedAddress.name}, {selectedAddress.city}, {selectedAddress.state}, {selectedAddress.zip}</p>
+                            <p>{selectedAddress.name}, {selectedAddress.addressLine1}, {selectedAddress.city}, {selectedAddress.state}, {selectedAddress.pincode}</p>
                             <SquarePenIcon onClick={() => setSelectedAddress(null)} className='cursor-pointer' size={18} />
                         </div>
                     ) : (
@@ -58,13 +136,16 @@ const OrderSummary = ({ totalPrice, items }) => {
                                         <option value="">Select Address</option>
                                         {
                                             addressList.map((address, index) => (
-                                                <option key={index} value={index}>{address.name}, {address.city}, {address.state}, {address.zip}</option>
+                                                <option key={index} value={index}>{address.name}, {address.addressLine1}, {address.city}, {address.state}, {address.pincode}</option>
                                             ))
                                         }
                                     </select>
                                 )
                             }
                             <button className='flex items-center gap-1 text-slate-600 mt-1' onClick={() => setShowAddressModal(true)} >Add Address <PlusIcon size={18} /></button>
+            {showAddressModal && <AddressModal setShowAddressModal={setShowAddressModal} onAddressAdded={(newAddress) => {
+                setSelectedAddress(newAddress);
+            }} />}
                         </div>
                     )
                 }
@@ -103,7 +184,7 @@ const OrderSummary = ({ totalPrice, items }) => {
             </div>
             <button onClick={e => toast.promise(handlePlaceOrder(e), { loading: 'placing Order...' })} className='w-full bg-slate-700 text-white py-2.5 rounded hover:bg-slate-900 active:scale-95 transition-all'>Place Order</button>
 
-            {showAddressModal && <AddressModal setShowAddressModal={setShowAddressModal} />}
+
 
         </div>
     )

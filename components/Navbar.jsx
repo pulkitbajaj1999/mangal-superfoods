@@ -2,15 +2,27 @@
 import { Search, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useSelector } from "react-redux";
+import { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { logout, setUser } from "@/lib/features/user/userSlice";
 
 const Navbar = () => {
 
     const router = useRouter();
+    const dispatch = useDispatch();
 
     const [search, setSearch] = useState('')
     const cartCount = useSelector(state => state.cart.total)
+    const user = useSelector(state => state.user.current)
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const localUser = localStorage.getItem('store_user')
+            if (localUser) {
+                dispatch(setUser(JSON.parse(localUser)))
+            }
+        }
+    }, [dispatch])
 
     const handleSearch = (e) => {
         e.preventDefault()
@@ -50,17 +62,63 @@ const Navbar = () => {
                             <button className="absolute -top-1 left-3 text-[8px] text-white bg-slate-600 size-3.5 rounded-full">{cartCount}</button>
                         </Link>
 
-                        {/* <button  className="px-8 py-2 bg-indigo-500 hover:bg-indigo-600 transition text-white rounded-full">
-                            Login
-                        </button> */}
+                        {user ? (
+                            <div className="flex items-center gap-2">
+                                <p className="text-slate-600">Hi, {user.name}</p>
+                                <Link href="/profile" className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-sm text-white rounded-full transition">
+                                    Profile
+                                </Link>
+                                <button
+                                    onClick={() => {
+                                        localStorage.removeItem('store_user')
+                                        dispatch(logout())
+                                    }}
+                                    className="px-4 py-1.5 bg-rose-500 hover:bg-rose-600 text-sm text-white rounded-full transition"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <Link href="/login" className="px-4 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-sm transition text-white rounded-full">
+                                    Login
+                                </Link>
+                                <Link href="/signup" className="px-4 py-1.5 bg-green-500 hover:bg-green-600 text-sm transition text-white rounded-full">
+                                    Signup
+                                </Link>
+                            </div>
+                        )}
 
                     </div>
 
                     {/* Mobile User Button  */}
                     <div className="sm:hidden">
-                        <button className="px-7 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-sm transition text-white rounded-full">
-                            Login
-                        </button>
+                        {user ? (
+                            <div className="flex items-center gap-2">
+                                <p className="text-sm text-slate-600">Hi, {user.name}</p>
+                                <Link href="/profile" className="px-2 py-1.5 bg-blue-500 hover:bg-blue-600 text-xs text-white rounded-full transition">
+                                    Profile
+                                </Link>
+                                <button
+                                    onClick={() => {
+                                        localStorage.removeItem('store_user')
+                                        dispatch(logout())
+                                    }}
+                                    className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-xs text-white rounded-full transition"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <Link href="/login" className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-xs transition text-white rounded-full">
+                                    Login
+                                </Link>
+                                <Link href="/signup" className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-xs transition text-white rounded-full">
+                                    Signup
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

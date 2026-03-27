@@ -1,26 +1,42 @@
 {
-  "name": "gocart",
+  "name": "store",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "prisma:db:push": "prisma db push",
+    "prisma:db:pull": "prisma db pull",
+    "prisma:format": "prisma format",
+    "db:seed": "node prisma/seed.mjs",
+    "postinstall": "prisma generate",
+    "init:s3": "chmod +x init/init-s3.sh && ./init/init-s3.sh"
   },
   "dependencies": {
-    "next": "15.3.5",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-redux": "^9.2.0",
-    "react-hot-toast": "^2.5.2",
-    "recharts": "^3.1.2",
+    "@aws-sdk/client-s3": "^3.1018.0",
+    "@prisma/adapter-pg": "^7.2.0",
+    "@prisma/client": "^7.2.0",
+    "@reduxjs/toolkit": "^2.8.2",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.525.0",
-    "@reduxjs/toolkit": "^2.8.2"
+    "next": "15.3.5",
+    "pg": "^8.16.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.5.2",
+    "react-redux": "^9.2.0",
+    "recharts": "^3.1.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "dotenv": "^17.2.3",
+    "prisma": "^7.2.0",
     "tailwindcss": "^4"
   }
 }

@@ -5,28 +5,33 @@ import Link from "next/link"
 import { ArrowRightIcon } from "lucide-react"
 import SellerNavbar from "./StoreNavbar"
 import SellerSidebar from "./StoreSidebar"
-import { dummyStoreData } from "@/assets/assets"
+
+import { useSelector } from 'react-redux'
 
 const StoreLayout = ({ children }) => {
 
-
-    const [isSeller, setIsSeller] = useState(false)
+    const user = useSelector((state) => state.user.current)
     const [loading, setLoading] = useState(true)
     const [storeInfo, setStoreInfo] = useState(null)
 
-    const fetchIsSeller = async () => {
-        setIsSeller(true)
-        setStoreInfo(dummyStoreData)
-        setLoading(false)
-    }
-
     useEffect(() => {
-        fetchIsSeller()
+        setLoading(false)
     }, [])
 
-    return loading ? (
-        <Loading />
-    ) : isSeller ? (
+    if (loading) return <Loading />
+
+    if (!user || !user.role || user.role.toUpperCase() !== 'ADMIN') {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
+                <h1 className="text-2xl sm:text-4xl font-semibold text-slate-400">You must be logged in as an Admin to see this page.</h1>
+                <Link href="/login" className="bg-slate-700 text-white flex items-center gap-2 mt-8 p-2 px-6 max-sm:text-sm rounded-full">
+                    Go to login <ArrowRightIcon size={18} />
+                </Link>
+            </div>
+        )
+    }
+
+    return (
         <div className="flex flex-col h-screen">
             <SellerNavbar />
             <div className="flex flex-1 items-start h-full overflow-y-scroll no-scrollbar">
@@ -35,13 +40,6 @@ const StoreLayout = ({ children }) => {
                     {children}
                 </div>
             </div>
-        </div>
-    ) : (
-        <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
-            <h1 className="text-2xl sm:text-4xl font-semibold text-slate-400">You are not authorized to access this page</h1>
-            <Link href="/" className="bg-slate-700 text-white flex items-center gap-2 mt-8 p-2 px-6 max-sm:text-sm rounded-full">
-                Go to home <ArrowRightIcon size={18} />
-            </Link>
         </div>
     )
 }

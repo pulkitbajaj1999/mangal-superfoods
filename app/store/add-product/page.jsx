@@ -25,8 +25,54 @@ export default function StoreAddProduct() {
 
     const onSubmitHandler = async (e) => {
         e.preventDefault()
-        // Logic to add a product
+        setLoading(true)
         
+        const formData = new FormData()
+        formData.append("name", productInfo.name);
+        formData.append("description", productInfo.description);
+        formData.append("mrp", productInfo.mrp);
+        formData.append("price", productInfo.price);
+        formData.append("category", productInfo.category);
+
+        // Append actual files from the 'images' state
+        Object.values(images).forEach((file) => {
+            if (file) {
+                formData.append("images", file);
+            }
+        });
+
+        // // For now, use placeholder images
+        // const imageUrls = Object.values(images).filter(img => img).map(img => URL.createObjectURL(img)) || ['/placeholder.jpg']
+        // console.log(imageUrls)
+        // const productData = {
+        //     ...productInfo,
+        //     images: imageUrls,
+        //     mrp: parseFloat(productInfo.mrp),
+        //     price: parseFloat(productInfo.price),
+        // }
+        
+        try {
+            const response = await fetch('/api/products', {
+                method: 'POST',
+                // headers: { 'Content-Type': 'multipart/form-data' },
+                // body: JSON.stringify(productData),
+                body: formData
+            })
+            
+            if (response.ok) {
+                toast.success('Product added successfully')
+                // Reset form
+                setProductInfo({ name: "", description: "", mrp: 0, price: 0, category: "" })
+                setImages({ 1: null, 2: null, 3: null, 4: null })
+            } else {
+                throw new Error('Failed to add product')
+            }
+        } catch (error) {
+            console.error('Error adding product:', error)
+            throw error
+        } finally {
+            setLoading(false)
+        }
     }
 
 
