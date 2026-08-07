@@ -5,9 +5,8 @@
 // GET /api/users?mobile=..., so mock reads strip it too (see authApi.js).
 //
 // Use these mobile numbers to sign in against the mock API:
-//   9999999999 / password123  -> CUSTOMER
-//   9888888888 / password123  -> SELLER
-//   9777777777 / password123  -> ADMIN
+//   9999999999 / password123  -> CUSTOMER (no special access)
+//   9777777777 / password123  -> ADMIN (access to admin dashboard and store management)
 
 export const mockUsers = [
     {
@@ -18,15 +17,6 @@ export const mockUsers = [
         password: 'password123',
         role: 'CUSTOMER',
         createdAt: '2026-05-01T10:00:00.000Z',
-    },
-    {
-        id: 'user_seller_1',
-        name: 'Mangal Superfoods Store',
-        email: 'store@mangalsuperfoods.example.com',
-        mobile: '9888888888',
-        password: 'password123',
-        role: 'SELLER',
-        createdAt: '2026-04-15T10:00:00.000Z',
     },
     {
         id: 'user_admin_1',

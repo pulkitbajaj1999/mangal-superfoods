@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Mangal Superfoods is a single-vendor e-commerce storefront (Next.js App Router + Tailwind CSS v4 + Redux Toolkit). It was forked from the open-source multi-vendor "GoCart" template (see `README.md`, which still carries the original GoCart branding/description — that hasn't been updated to match) and has since been narrowed to one store: the multi-vendor `Store` model has been removed from the schema, and most vendor/admin write actions have been replaced with real API-backed implementations.
+Mangal Superfoods is a single-vendor e-commerce storefront (Next.js App Router + Tailwind CSS v4 + Redux Toolkit). It was forked from the open-source multi-vendor "GoCart" template (see `README.md`, which still carries the original GoCart branding/description — that hasn't been updated to match) and has since been narrowed to one store: the multi-vendor UI has been completely removed, and all vendor/admin write actions have been replaced with real API-backed implementations.
 
 **This repo is frontend-only.** The Postgres database, Prisma schema, and all API routes now live in a separate sibling repo, `mangal-superfoods-backend` (a standalone Express app) — this frontend has no `app/api/`, no `prisma/`, and no direct DB/S3 access; every data operation goes over HTTP to that backend. See "Frontend/backend split" below before assuming any of the old in-repo API-route behavior still applies here.
 
@@ -30,12 +30,10 @@ For rapid development without the backend, set `NEXT_PUBLIC_USE_MOCK_API=true` a
 
 The App Router is split into three independently-laid-out sections, each with its own `layout.jsx` and nav/sidebar chrome:
 
-- `src/app/(public)/` — the customer storefront (home, `shop`, `shop/[username]`, `product/[productId]`, `cart`, `orders`, `pricing`, `create-store`). Layout wraps pages with `Banner` + `Navbar` + `Footer` (`src/components/*`).
-- `src/app/admin/` — admin dashboard (approve vendors, coupons, stores). Layout uses `src/components/admin/AdminLayout.jsx` (+ `AdminNavbar`/`AdminSidebar`), and client-side gates on `user.role === 'ADMIN'`.
+- `src/app/(public)/` — the customer storefront (home, `shop`, `product/[productId]`, `cart`, `orders`, `pricing`). Layout wraps pages with `Banner` + `Navbar` + `Footer` (`src/components/*`).
+- `src/app/admin/` — admin dashboard (coupons management). Layout uses `src/components/admin/AdminLayout.jsx` (+ `AdminNavbar`/`AdminSidebar`), and client-side gates on `user.role === 'ADMIN'`.
 - `src/app/store/` — the store/seller dashboard (add/manage products, orders). Layout uses `src/components/store/StoreLayout.jsx` (+ `StoreNavbar`/`StoreSidebar`). Note: it also gates on `user.role === 'ADMIN'` (not `SELLER`), even though `UserRole` includes a separate `SELLER` value — check `src/components/store/StoreLayout.jsx` before assuming `SELLER` grants access anywhere.
 - `src/app/login/`, `src/app/signup/`, `src/app/profile/` — real, working auth pages (see "Auth" below), added after the original GoCart layout was set up; they sit outside the three chrome trees above and don't use `Banner`/`Navbar`/`Footer`.
-
-**Multi-vendor UI is now vestigial.** `src/app/(public)/create-store/`, `src/app/admin/approve/`, and `src/app/admin/stores/` still exist and render, but there's no `Store` model left to back them (see below) — their submit handlers are still bare stubs. `src/app/(public)/shop/[username]/page.jsx` also still exists as a route but no longer looks up a store by username; it just renders all products and has a code comment noting this ("Single-store: route kept for now, but we don't render per-store mock data"). Don't treat any of these four as evidence that per-vendor functionality works — it doesn't.
 
 When adding a page, match the persona it belongs to (customer/admin/store) and place it under the corresponding tree using the existing layout/component pair — don't build new chrome from scratch.
 
@@ -71,25 +69,18 @@ Set `NEXT_PUBLIC_USE_MOCK_API=true` in `.env` to run the frontend with zero back
 
 Mock auth fixtures are documented in `src/features/auth/api/authMockData.js` with three ready-to-use mobile/password logins (CUSTOMER/SELLER/ADMIN roles) and a fixed mock OTP code for testing SMS flows.
 
-### Most write actions are now implemented — only the vendor/admin stubs remain
+### All write actions are implemented
 
-Earlier in this repo's history, form submit handlers were wired up to the UI (state, validation, `toast.promise(...)` loading/success/error UX) with a bare `// Logic to ...` comment and no implementation. **Most of these have since been implemented** and now call the backend via the feature API modules:
+Form submit handlers are wired up to the UI (state, validation, `toast.promise(...)` loading/success/error UX) and call the backend via the feature API modules:
 
-- `src/app/store/add-product/page.jsx` → `onSubmitHandler` — ✅ implemented (calls `productApi.createProduct()` → `POST /api/products` with `FormData`, uploads images)
-- `src/app/store/manage-product/page.jsx` → `toggleStock` and other handlers — ✅ implemented (calls `productApi.updateProduct()` → `PUT`/`DELETE` on `/api/products/[id]`)
-- `src/app/store/orders/page.jsx` → `updateOrderStatus` — ✅ implemented (calls `orderApi.updateOrder()` → `PUT /api/orders/[id]`)
-- `src/components/OrderSummary.jsx` → `handleCouponCode` / `handlePlaceOrder` — ✅ implemented (calls `couponApi.getCoupons()`, `orderApi.createOrder()`)
-- `src/components/AddressModal.jsx` → `handleSubmit` — ✅ implemented (calls `addressApi.createAddress()`)
-- `src/components/RatingModal.jsx` → `handleSubmit` — ✅ implemented (calls `ratingApi.createRating()`)
+- `src/app/store/add-product/page.jsx` → `onSubmitHandler` — calls `productApi.createProduct()` → `POST /api/products` with `FormData`, uploads images
+- `src/app/store/manage-product/page.jsx` → `toggleStock` and other handlers — calls `productApi.updateProduct()` → `PUT`/`DELETE` on `/api/products/[id]`
+- `src/app/store/orders/page.jsx` → `updateOrderStatus` — calls `orderApi.updateOrder()` → `PUT /api/orders/[id]`
+- `src/components/OrderSummary.jsx` → `handleCouponCode` / `handlePlaceOrder` — calls `couponApi.getCoupons()`, `orderApi.createOrder()`
+- `src/components/AddressModal.jsx` → `handleSubmit` — calls `addressApi.createAddress()`
+- `src/components/RatingModal.jsx` → `handleSubmit` — calls `ratingApi.createRating()`
 
-Still bare `// Logic to ...` stubs — all of them vendor/multi-store admin flows with no backing model (see "vestigial" note above), the actual remaining gap to fill if this functionality is ever revived:
-
-- `src/app/admin/approve/page.jsx` → `handleApprove`: *Logic to approve a store*
-- `src/app/admin/stores/page.jsx` → `toggleIsActive`: *Logic to toggle the status of a store*
-- `src/app/admin/coupons/page.jsx` → `handleAddCoupon` / `deleteCoupon`: *Logic to add/delete a coupon*
-- `src/app/(public)/create-store/page.jsx` → two handlers: *check if the store is already submitted* / *submit the store details*
-
-When implementing one of these, follow the pattern of existing feature API modules (e.g. `src/features/products/api/productApi.js`): keep the existing `toast.promise(fn(), { loading: '...' })` call pattern at the call site — `fn()` is expected to resolve/reject to drive the toast's success/error state, so implementations should return a promise rather than swallowing errors internally. The feature API module handles both mock and real backend routes transparently.
+Follow the pattern of existing feature API modules (e.g. `src/features/products/api/productApi.js`) when implementing new features: keep the existing `toast.promise(fn(), { loading: '...' })` call pattern at the call site — `fn()` is expected to resolve/reject to drive the toast's success/error state, so implementations should return a promise rather than swallowing errors internally. The feature API module handles both mock and real backend routes transparently.
 
 ### Auth is implemented (mobile + password + OTP) — but there's no session/middleware layer
 

@@ -16,9 +16,8 @@ Mangal Superfoods is a **single-vendor e-commerce storefront**. The stack is:
 
 The project was forked from the open-source multi-vendor "GoCart" template (the root `README.md` still
 carries the original GoCart branding — that hasn't been updated) and has since been narrowed to one store.
-The `Store` model has been removed from the data model entirely, and most vendor/admin write actions have
-been replaced with real, API-backed implementations. A few multi-vendor UI screens still exist as routes
-but are vestigial — see [Vestigial multi-vendor UI](#vestigial-multi-vendor-ui) below.
+The `Store` model has been removed from the data model entirely, and all multi-vendor UI screens have been removed.
+All vendor/admin write actions have been replaced with real, API-backed implementations.
 
 **This repo is frontend-only.** There is no database, no Prisma schema, and no API route handlers here.
 Every data operation is an HTTP call to a separate sibling repo, `mangal-superfoods-backend` (a standalone
@@ -84,20 +83,6 @@ don't assume a `SELLER` account has access here without checking `StoreLayout.js
 
 Real, working auth pages added after the original GoCart layout was set up. They don't use
 `Banner`/`Navbar`/`Footer` and have no shared chrome of their own.
-
-### Vestigial multi-vendor UI
-
-These routes still exist and render, but have no model behind them (no `Store` model — see
-[Data model](#data-model-owned-by-the-backend) below) and their submit handlers are bare stubs:
-
-- `src/app/(public)/create-store/` — "become a seller" form
-- `src/app/admin/approve/` — approve pending stores
-- `src/app/admin/stores/` — list/toggle stores
-- `src/app/(public)/shop/[username]/page.jsx` — still routable, but no longer looks up a store by username;
-  it renders all products (there's a code comment noting this: *"Single-store: route kept for now, but
-  we don't render per-store mock data"*)
-
-Don't treat any of these four as evidence that per-vendor functionality works.
 
 ## State management: Redux Toolkit, per-request store
 
@@ -215,9 +200,7 @@ lifetime of the page, but are reset on reload. This is useful for rapid developm
 
 ## Write-action implementation status
 
-Most form submit handlers that were originally bare `// Logic to ...` stubs (state, validation, and
-`toast.promise(...)` loading/success/error UX already wired up) have since been implemented against the
-backend via the feature API modules:
+All form submit handlers have been implemented against the backend via the feature API modules:
 
 | Location | Handler | API module | Status |
 |---|---|---|---|
@@ -228,20 +211,7 @@ backend via the feature API modules:
 | `src/components/AddressModal.jsx` | `handleSubmit` | `addressApi.js` → `createAddress()` | ✅ implemented — `/api/addresses` |
 | `src/components/RatingModal.jsx` | `handleSubmit` | `ratingApi.js` → `createRating()` | ✅ implemented — `/api/ratings` |
 
-Still bare stubs — all vendor/multi-store admin flows with no backing model (the real remaining gap, if
-this functionality is ever revived):
-
-| Location | Handler | Stub comment |
-|---|---|---|
-| `src/app/admin/approve/page.jsx` | `handleApprove` | *Logic to approve a store* |
-| `src/app/admin/stores/page.jsx` | `toggleIsActive` | *Logic to toggle the status of a store* |
-| `src/app/admin/coupons/page.jsx` | `handleAddCoupon` / `deleteCoupon` | *Logic to add/delete a coupon* |
-| `src/app/(public)/create-store/page.jsx` | two handlers | *check if the store is already submitted* / *submit the store details* |
-
-When implementing one of these, keep the existing `toast.promise(fn(), { loading: '...' })` pattern at
-the call site — `fn()` is expected to resolve/reject to drive the toast, so implementations should
-return a promise rather than swallowing errors internally. Follow the pattern of existing API modules
-(e.g. `productApi.js`) for consistency.
+Follow the pattern of existing API modules (e.g. `productApi.js`) for consistency when implementing new features. Keep the existing `toast.promise(fn(), { loading: '...' })` pattern at the call site — `fn()` is expected to resolve/reject to drive the toast, so implementations should return a promise rather than swallowing errors internally.
 
 ## Auth is real, but there's no server-side session layer
 
