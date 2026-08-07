@@ -27,18 +27,27 @@ Express + Prisma + Postgres app). See [Frontend/backend split](#frontendbackend-
 ## Repository layout
 
 ```
-app/                    Next.js App Router pages (three independent chrome trees, see below)
-components/             Shared React components, plus admin/ and store/ subfolders for those areas' chrome
-lib/
-  apiClient.js          apiFetch() — the only way this repo talks to the backend
-  store.js              Redux store factory (makeStore)
-  features/<name>/      Redux slices: cart, product, address, rating, user
-assets/
-  assets.js             Static image imports, category list, misc UI fixture data (icons, spec copy)
-app/StoreProvider.js    Client component that lazily creates the per-request Redux store
-next.config.mjs         images.unoptimized = true
-jsconfig.json           @/* path alias → repo root
-.env.example            NEXT_PUBLIC_CURRENCY_SYMBOL, NEXT_PUBLIC_API_BASE_URL
+src/
+  app/                    Next.js App Router pages (three independent chrome trees, see below)
+  components/             Shared React components, plus admin/ and store/ subfolders for those areas' chrome
+  store/
+    index.js              Redux store factory (makeStore)
+  features/<name>/
+    <name>Slice.js        Redux slice
+    api/
+      <name>Api.js        API call wrappers (use apiFetch or mockResponse based on USE_MOCK_API)
+      <name>MockData.js   In-memory fixture data for each feature
+  config/
+    api.js                USE_MOCK_API toggle (reads NEXT_PUBLIC_USE_MOCK_API env var)
+  services/
+    apiClient.js          apiFetch() — HTTP wrapper, prefixes NEXT_PUBLIC_API_BASE_URL
+    mockUtils.js          mockResponse() helper, delay() for simulating network latency
+  assets/
+    assets.js             Static image imports, category list, UI fixture data (icons, spec copy)
+  StoreProvider.js        Client component that lazily creates the per-request Redux store (root client wrapper)
+next.config.mjs           images.unoptimized = true
+jsconfig.json             @/* path alias → repo root
+.env.example              NEXT_PUBLIC_CURRENCY_SYMBOL, NEXT_PUBLIC_API_BASE_URL, NEXT_PUBLIC_USE_MOCK_API
 ```
 
 ## The three app areas
@@ -47,31 +56,31 @@ The App Router is split into three independently-laid-out sections, each with it
 nav/sidebar chrome. There is no shared top-level layout beyond the root `app/layout.jsx` (fonts, Redux
 `StoreProvider`, `react-hot-toast`'s `Toaster`).
 
-### 1. Customer storefront — `app/(public)/`
+### 1. Customer storefront — `src/app/(public)/`
 
 Routes: `page.jsx` (home), `shop/`, `shop/[username]/`, `product/[productId]/`, `cart/`, `orders/`,
 `pricing/`, `create-store/`, `loading/`.
 
-Layout (`app/(public)/layout.jsx`) wraps pages with `Banner` → `Navbar` → page content → `Footer`
-(all in `components/`). Home page composes `Hero`, `CategoriesMarquee`, `LatestProducts`, `BestSelling`,
+Layout (`src/app/(public)/layout.jsx`) wraps pages with `Banner` → `Navbar` → page content → `Footer`
+(all in `src/components/`). Home page composes `Hero`, `CategoriesMarquee`, `LatestProducts`, `BestSelling`,
 `OurSpec`, `Newsletter`.
 
-### 2. Admin dashboard — `app/admin/`
+### 2. Admin dashboard — `src/app/admin/`
 
 Routes: `page.jsx` (dashboard), `approve/`, `coupons/`, `stores/`.
 
-Layout uses `components/admin/AdminLayout.jsx` (+ `AdminNavbar`, `AdminSidebar`). Gates client-side on
+Layout uses `src/components/admin/AdminLayout.jsx` (+ `AdminNavbar`, `AdminSidebar`). Gates client-side on
 `user.role === 'ADMIN'` — see [Auth caveats](#auth-is-real-but-theres-no-server-side-session-layer).
 
-### 3. Store (seller) dashboard — `app/store/`
+### 3. Store (seller) dashboard — `src/app/store/`
 
 Routes: `page.jsx` (dashboard), `add-product/`, `manage-product/`, `orders/`.
 
-Layout uses `components/store/StoreLayout.jsx` (+ `StoreNavbar`, `StoreSidebar`). **Also gates on
+Layout uses `src/components/store/StoreLayout.jsx` (+ `StoreNavbar`, `StoreSidebar`). **Also gates on
 `user.role === 'ADMIN'`**, not `SELLER`, even though `UserRole` includes a distinct `SELLER` value —
 don't assume a `SELLER` account has access here without checking `StoreLayout.jsx` first.
 
-### Outside the three trees — `app/login/`, `app/signup/`, `app/profile/`
+### Outside the three trees — `src/app/login/`, `src/app/signup/`, `src/app/profile/`
 
 Real, working auth pages added after the original GoCart layout was set up. They don't use
 `Banner`/`Navbar`/`Footer` and have no shared chrome of their own.
@@ -81,10 +90,10 @@ Real, working auth pages added after the original GoCart layout was set up. They
 These routes still exist and render, but have no model behind them (no `Store` model — see
 [Data model](#data-model-owned-by-the-backend) below) and their submit handlers are bare stubs:
 
-- `app/(public)/create-store/` — "become a seller" form
-- `app/admin/approve/` — approve pending stores
-- `app/admin/stores/` — list/toggle stores
-- `app/(public)/shop/[username]/page.jsx` — still routable, but no longer looks up a store by username;
+- `src/app/(public)/create-store/` — "become a seller" form
+- `src/app/admin/approve/` — approve pending stores
+- `src/app/admin/stores/` — list/toggle stores
+- `src/app/(public)/shop/[username]/page.jsx` — still routable, but no longer looks up a store by username;
   it renders all products (there's a code comment noting this: *"Single-store: route kept for now, but
   we don't render per-store mock data"*)
 
@@ -92,24 +101,24 @@ Don't treat any of these four as evidence that per-vendor functionality works.
 
 ## State management: Redux Toolkit, per-request store
 
-`app/layout.jsx` wraps the app in `StoreProvider` (`app/StoreProvider.js`), a client component that
-lazily creates the store via `makeStore()` (`lib/store.js`). This is the standard Next.js App Router
+`src/app/layout.jsx` (root) wraps the app in `StoreProvider` (`src/StoreProvider.js`), a client component that
+lazily creates the store via `makeStore()` (`src/store/index.js`). This is the standard Next.js App Router
 pattern for keeping the Redux store request-scoped rather than a module-level singleton (avoids leaking
 state across requests/users on the server).
 
-Slices (`lib/features/<name>/<name>Slice.js`), combined in `lib/store.js`:
+Slices live under `src/features/<name>/<name>Slice.js` and are combined in `src/store/index.js`:
 
 | Slice      | Initial state                          | Notes |
 |------------|-----------------------------------------|-------|
 | `cart`     | `{ total: 0, cartItems: {} }`           | `cartItems` keyed by `productId` → quantity |
-| `product`  | `{ list: [] }`                          | populated by `useEffect` fetch, not seeded |
-| `address`  | `{ list: [] }`                          | populated by `useEffect` fetch, not seeded |
-| `rating`   | `{ list: [] }`                          | populated by `useEffect` fetch, not seeded |
-| `user`     | `{ current: null }`                     | set by login/signup; actions: `setUser`, `login`, `logout`, `updateProfile` |
+| `product`  | `{ list: [] }`                          | populated by `useEffect` fetch from `productApi.js`, not seeded |
+| `address`  | `{ list: [] }`                          | populated by `useEffect` fetch from `addressApi.js`, not seeded |
+| `rating`   | `{ list: [] }`                          | populated by `useEffect` fetch from `ratingApi.js`, not seeded |
+| `user`     | `{ current: null }`                     | set by login/signup (via `authApi.js`); actions: `setUser`, `login`, `logout`, `updateProfile` |
 
-None of the slices seed from `assets/assets.js` fixtures anymore — `product`/`address`/`rating` all
-start empty and are populated by API calls against the backend. Follow the existing plain-`createSlice`
-shape (e.g. `cartSlice.js`) when extending state.
+None of the slices seed from fixture data anymore — `product`/`address`/`rating` all start empty (`list: []`) 
+and are populated by API calls via the corresponding feature's `*Api.js` modules (which support both real and
+mock backends). Follow the existing plain-`createSlice` shape (e.g. `cartSlice.js`) when extending state.
 
 ## Frontend/backend split
 
@@ -122,7 +131,7 @@ been fully split out:
   `@prisma/client` / `pg` / `@aws-sdk/client-s3` as dependencies. Don't reintroduce direct DB/S3 access
   here — all data operations go over HTTP.
 
-### `lib/apiClient.js`
+### `src/services/apiClient.js`
 
 ```js
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
@@ -132,10 +141,12 @@ export function apiFetch(path, options) {
 }
 ```
 
-A thin `fetch()` wrapper that prefixes `NEXT_PUBLIC_API_BASE_URL`. Every call site that used to
-`fetch('/api/...')` now calls `apiFetch('/api/...')` instead — same path, same options (JSON bodies,
-`FormData` for image uploads, etc.), just routed to the external backend. **Use `apiFetch` for any new
-API call** rather than raw `fetch('/api/...')`.
+A thin `fetch()` wrapper that prefixes `NEXT_PUBLIC_API_BASE_URL`. Components/pages should **not import
+`apiFetch` directly** — instead, import from the feature's API module (e.g. `import { getProducts } from '@/features/products/api/productApi'`).
+The API modules handle the mock/real toggle transparently, so call sites never need to branch on `USE_MOCK_API`.
+
+For low-level use cases outside the feature API modules (which is rare), `apiFetch` works just like raw `fetch()` — same path, 
+same options (JSON bodies, `FormData` for image uploads, etc.), just routed to the external backend.
 
 Because the backend is a separate origin, it enables CORS for the frontend's origin
 (`FRONTEND_ORIGIN` env var, set on the *backend*). Adding a new frontend deployment origin requires
@@ -158,38 +169,83 @@ updating that env var on the backend side too, or requests get blocked by the br
 **No `Store` model**, and `Product` has no `storeId` (removed in the multi-vendor → single-vendor
 pivot). `User.role` is a `UserRole` enum: `CUSTOMER` / `ADMIN` / `SELLER`.
 
+## Mock API layer — zero-backend development
+
+Every feature that talks to the backend has an `api/` folder alongside its Redux slice
+(`src/features/<name>/api/`), containing:
+
+- `<name>Api.js` — API call wrappers (e.g. `getProducts()`, `createProduct(data)`)
+- `<name>MockData.js` — in-memory fixture data
+
+Each `*Api.js` function checks the `USE_MOCK_API` toggle (`src/config/api.js`) and either:
+- Returns a mock Response-like object built with `mockResponse()` (`src/services/mockUtils.js`)
+- Calls `apiFetch()` to hit the real backend
+
+**All call sites are identical** — they don't branch on `USE_MOCK_API`. They just import from
+`src/features/<name>/api/<name>Api.js` and call the function, which returns a Response-like shape
+(`.ok`, `.json()`) whether mock or real. This keeps components/pages agnostic of the toggle.
+
+```javascript
+// Example usage in a component or page:
+import { getProducts } from '@/features/products/api/productApi'
+
+const response = await getProducts()
+if (response.ok) {
+  const products = await response.json()
+  // use products...
+}
+```
+
+**To run the frontend with zero backend dependency**, set `NEXT_PUBLIC_USE_MOCK_API=true` in `.env`:
+
+```bash
+# .env
+NEXT_PUBLIC_USE_MOCK_API=true
+npm run dev  # Frontend now uses mock fixtures, no backend/DB needed
+```
+
+Mock data is stored in memory per session — creates/updates/deletes mutate the mock fixtures for the
+lifetime of the page, but are reset on reload. This is useful for rapid development/demo cycles.
+
+**Mock auth fixtures** (in `src/features/auth/api/authMockData.js`) document ready-to-use test accounts:
+- Mobile `+919876543210`, password `password123` (CUSTOMER role)
+- Mobile `+919876543211`, password `password123` (SELLER role)
+- Mobile `+919876543212`, password `password123` (ADMIN role)
+- Fixed OTP code `123456` for testing SMS flows
+
 ## Write-action implementation status
 
 Most form submit handlers that were originally bare `// Logic to ...` stubs (state, validation, and
 `toast.promise(...)` loading/success/error UX already wired up) have since been implemented against the
-backend:
+backend via the feature API modules:
 
-| Location | Handler | Status |
-|---|---|---|
-| `app/store/add-product/page.jsx` | `onSubmitHandler` | ✅ implemented — `POST /api/products` with `FormData`, uploads images |
-| `app/store/manage-product/page.jsx` | `toggleStock` and others | ✅ implemented — `PUT`/`DELETE` on `/api/products/[id]` |
-| `app/store/orders/page.jsx` | `updateOrderStatus` | ✅ implemented — `PUT /api/orders/[id]` |
-| `components/OrderSummary.jsx` | `handleCouponCode` / `handlePlaceOrder` | ✅ implemented — `/api/coupons`, `/api/orders` |
-| `components/AddressModal.jsx` | `handleSubmit` | ✅ implemented — `/api/addresses` |
-| `components/RatingModal.jsx` | `handleSubmit` | ✅ implemented — `/api/ratings` |
+| Location | Handler | API module | Status |
+|---|---|---|---|
+| `src/app/store/add-product/page.jsx` | `onSubmitHandler` | `productApi.js` → `createProduct()` | ✅ implemented — `POST /api/products` with `FormData`, uploads images |
+| `src/app/store/manage-product/page.jsx` | `toggleStock` and others | `productApi.js` → `updateProduct()` | ✅ implemented — `PUT`/`DELETE` on `/api/products/[id]` |
+| `src/app/store/orders/page.jsx` | `updateOrderStatus` | `orderApi.js` → `updateOrder()` | ✅ implemented — `PUT /api/orders/[id]` |
+| `src/components/OrderSummary.jsx` | `handleCouponCode` / `handlePlaceOrder` | `couponApi.js`, `orderApi.js` | ✅ implemented — `/api/coupons`, `/api/orders` |
+| `src/components/AddressModal.jsx` | `handleSubmit` | `addressApi.js` → `createAddress()` | ✅ implemented — `/api/addresses` |
+| `src/components/RatingModal.jsx` | `handleSubmit` | `ratingApi.js` → `createRating()` | ✅ implemented — `/api/ratings` |
 
 Still bare stubs — all vendor/multi-store admin flows with no backing model (the real remaining gap, if
 this functionality is ever revived):
 
 | Location | Handler | Stub comment |
 |---|---|---|
-| `app/admin/approve/page.jsx` | `handleApprove` | *Logic to approve a store* |
-| `app/admin/stores/page.jsx` | `toggleIsActive` | *Logic to toggle the status of a store* |
-| `app/admin/coupons/page.jsx` | `handleAddCoupon` / `deleteCoupon` | *Logic to add/delete a coupon* |
-| `app/(public)/create-store/page.jsx` | two handlers | *check if the store is already submitted* / *submit the store details* |
+| `src/app/admin/approve/page.jsx` | `handleApprove` | *Logic to approve a store* |
+| `src/app/admin/stores/page.jsx` | `toggleIsActive` | *Logic to toggle the status of a store* |
+| `src/app/admin/coupons/page.jsx` | `handleAddCoupon` / `deleteCoupon` | *Logic to add/delete a coupon* |
+| `src/app/(public)/create-store/page.jsx` | two handlers | *check if the store is already submitted* / *submit the store details* |
 
 When implementing one of these, keep the existing `toast.promise(fn(), { loading: '...' })` pattern at
 the call site — `fn()` is expected to resolve/reject to drive the toast, so implementations should
-return a promise rather than swallowing errors internally.
+return a promise rather than swallowing errors internally. Follow the pattern of existing API modules
+(e.g. `productApi.js`) for consistency.
 
 ## Auth is real, but there's no server-side session layer
 
-`app/login/page.jsx` and `app/signup/page.jsx` implement a working auth flow:
+`src/app/login/page.jsx` and `src/app/signup/page.jsx` implement a working auth flow via the `authApi.js` module:
 
 1. Mobile number lookup — `GET /api/users?mobile=...`
 2. OTP send/verify over WhatsApp — `POST /api/sms/send`, `POST /api/sms/verify` (backed by
@@ -197,30 +253,38 @@ return a promise rather than swallowing errors internally.
 3. Password auth — `POST /api/auth/login` (passwords hashed with Node's `crypto.scryptSync`, stored as
    `salt:key`)
 
-All of these are `apiFetch` calls to `mangal-superfoods-backend` — none are local routes. On success the
-app dispatches into the `user` Redux slice (`state.user.current`); `Navbar.jsx` reads this to render
-`Hi, {user.name}` instead of a "Login" link.
+All of these are routed through `src/features/auth/api/authApi.js`, which supports both real and mock backends
+(see [Mock API layer](#mock-api-layer--zero-backend-development)). On success the app dispatches into the
+`user` Redux slice (`state.user.current`); `Navbar.jsx` reads this to render `Hi, {user.name}` instead of a
+"Login" link.
 
-`User.role` is checked **client-side only**, in `components/admin/AdminLayout.jsx` and
-`components/store/StoreLayout.jsx` (both require `role === 'ADMIN'`). **There is no `middleware.js`
+`User.role` is checked **client-side only**, in `src/components/admin/AdminLayout.jsx` and
+`src/components/store/StoreLayout.jsx` (both require `role === 'ADMIN'`). **There is no `middleware.js`
 and no server-side session/route protection** — `state.user.current` is just client-side UI state
-populated by the login flow, not a verified session. Don't assume `app/admin` or `app/store` are
+populated by the login flow, not a verified session. Don't assume `src/app/admin` or `src/app/store` are
 actually access-controlled server-side; a user who directly navigates there without going through the
 client-side check (or with client JS disabled) is not blocked by anything on the server.
 
 ## Conventions
 
-- **Path alias**: `@/*` → repo root (`jsconfig.json`), e.g. `@/components/Navbar`.
+- **Path alias**: `@/*` → `src/` directory (`jsconfig.json`), e.g. `@/components/Navbar`, `@/features/products/api/productApi`.
+- **Feature API calls**: Don't import `apiFetch` directly in components. Instead, import from
+  `@/features/<name>/api/<name>Api.js` (e.g. `import { getProducts } from '@/features/products/api/productApi'`).
+  This ensures the mock/real API toggle works transparently at the call site.
+- **Adding a new feature**: Create `src/features/<name>/` with:
+  - `<name>Slice.js` (Redux slice)
+  - `api/<name>Api.js` (API wrappers, uses `USE_MOCK_API` toggle)
+  - `api/<name>MockData.js` (fixture data for development)
 - **Currency**: read from `process.env.NEXT_PUBLIC_CURRENCY_SYMBOL` with a `'$'` fallback, repeated
   per-component (`const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '$'`) rather than a shared
   helper — match this in new components. Some older components hardcode a literal `$`/`₹` instead (e.g.
-  the order-detail modal in `app/store/orders/page.jsx`) — the pattern isn't applied everywhere.
+  the order-detail modal in `src/app/store/orders/page.jsx`) — the pattern isn't applied everywhere.
 - **Images**: `next.config.mjs` sets `images.unoptimized = true` — `next/image` is used, but images are
   served unoptimized (no Next.js image optimization pipeline, since there's no server-side image infra
   configured for this deployment).
-- **Font**: `Outfit` via `next/font/google`, set up once in the root `app/layout.jsx`.
-- **Category lists are duplicated, not shared**: `assets/assets.js` exports a short `categories` list
-  for the storefront, while `app/store/add-product/page.jsx` hardcodes its own longer, different category
+- **Font**: `Outfit` via `next/font/google`, set up once in the root `src/app/layout.jsx`.
+- **Category lists are duplicated, not shared**: `src/assets/assets.js` exports a short `categories` list
+  for the storefront, while `src/app/store/add-product/page.jsx` hardcodes its own longer, different category
   array inline. There's no single source of truth — update both if a category list needs to change.
 
 ## Environment variables
@@ -231,11 +295,14 @@ Set in `.env` (see `.env.example`):
 |---|---|---|
 | `NEXT_PUBLIC_CURRENCY_SYMBOL` | Currency symbol used across price displays | `'₹'` |
 | `NEXT_PUBLIC_API_BASE_URL` | Base URL of the `mangal-superfoods-backend` service | `http://localhost:4000` |
+| `NEXT_PUBLIC_USE_MOCK_API` | Toggle mock API layer (see [Mock API layer](#mock-api-layer--zero-backend-development)) — set to `'true'` to run without backend | `'false'` (default) |
 
 There is no `DATABASE_URL`, WHAPI, or S3 config in this repo — those live in the backend repo's own
 `.env`.
 
 ## Running locally
+
+### With the backend (recommended for integration testing)
 
 This frontend must be run **alongside** `mangal-superfoods-backend` for any data-backed page to work:
 
@@ -249,7 +316,21 @@ npm install
 npm run dev           # Next.js + Turbopack, http://localhost:3000
 ```
 
-Other commands:
+### With mock API (zero backend dependency)
+
+For rapid development/demo without running the backend service, set `NEXT_PUBLIC_USE_MOCK_API=true` in `.env`:
+
+```bash
+# in this repo
+echo "NEXT_PUBLIC_USE_MOCK_API=true" >> .env
+npm install
+npm run dev           # Frontend runs against in-memory mock fixtures
+```
+
+All data operations use the local mock layer (see [Mock API layer](#mock-api-layer--zero-backend-development)).
+Creates/updates/deletes persist for the session but reset on page reload.
+
+### Other commands
 
 ```bash
 npm run build          # production build
@@ -263,13 +344,16 @@ There is no test suite/framework configured in this repo (no Jest/Vitest).
 
 | Package | Role |
 |---|---|
-| `next` | App Router framework (Turbopack in dev) |
+| `next` | App Router framework (v16, Turbopack in dev) |
 | `react` / `react-dom` | v19 |
-| `@reduxjs/toolkit` / `react-redux` | Client state |
+| `@reduxjs/toolkit` / `react-redux` | Client state management |
 | `tailwindcss` / `@tailwindcss/postcss` | Styling (v4) |
 | `react-hot-toast` | Toast notifications, incl. `toast.promise` for async form handlers |
-| `recharts` | Orders chart in the store dashboard (`components/OrdersAreaChart.jsx`) |
+| `recharts` | Orders chart in the store dashboard (`src/components/OrdersAreaChart.jsx`) |
 | `date-fns` | Date formatting |
 | `lucide-react` | Icon set |
 
 Notably absent (moved to the backend repo): `@prisma/client`, `pg`, `@aws-sdk/client-s3`.
+
+The mock API layer (see [Mock API layer](#mock-api-layer--zero-backend-development)) uses only built-in
+JavaScript — no additional dependencies are needed to run the frontend against mock fixtures.
