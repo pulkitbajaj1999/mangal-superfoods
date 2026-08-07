@@ -5,7 +5,7 @@
 //
 // Images are plain URL strings (matching real S3-hosted responses), not
 // `next/image` static imports — several call sites (e.g.
-// app/store/manage-product/page.jsx's edit-product flow) do `typeof img ===
+// app/admin/manage-product/page.jsx's edit-product flow) do `typeof img ===
 // 'string'` checks to tell an existing image apart from a newly-picked File,
 // so a static-import object would silently break there. We still source the
 // pictures from local files under src/mock/assets/superfoods/ (real product

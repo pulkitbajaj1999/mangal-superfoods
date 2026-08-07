@@ -40,7 +40,7 @@ export async function getProductById(productId) {
 }
 
 // `body` is a FormData instance (name, description, mrp, price, category, images[])
-// — see app/store/add-product/page.jsx.
+// — see app/admin/add-product/page.jsx.
 export async function createProduct(formData) {
     if (USE_MOCK_API) {
         const fields = readFormFields(formData)
@@ -67,7 +67,7 @@ export async function createProduct(formData) {
 }
 
 // `payload` is either a plain object (JSON — e.g. { inStock }) or a FormData
-// instance (full edit form, see app/store/manage-product/page.jsx).
+// instance (full edit form, see app/admin/manage-product/page.jsx).
 export async function updateProduct(productId, payload) {
     if (USE_MOCK_API) {
         const existing = mockProducts.find((p) => p.id === productId)

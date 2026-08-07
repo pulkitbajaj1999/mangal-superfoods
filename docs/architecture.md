@@ -27,8 +27,8 @@ Express + Prisma + Postgres app). See [Frontend/backend split](#frontendbackend-
 
 ```
 src/
-  app/                    Next.js App Router pages (three independent chrome trees, see below)
-  components/             Shared React components, plus admin/ and store/ subfolders for those areas' chrome
+  app/                    Next.js App Router pages (two independent chrome trees, see below)
+  components/             Shared React components, plus admin/ subfolder for admin area chrome
   store/
     index.js              Redux store factory (makeStore)
   features/<name>/
@@ -49,16 +49,15 @@ jsconfig.json             @/* path alias → repo root
 .env.example              NEXT_PUBLIC_CURRENCY_SYMBOL, NEXT_PUBLIC_API_BASE_URL, NEXT_PUBLIC_USE_MOCK_API
 ```
 
-## The three app areas
+## The two main app areas
 
-The App Router is split into three independently-laid-out sections, each with its own `layout.jsx` and
+The App Router is split into two independently-laid-out sections, each with its own `layout.jsx` and
 nav/sidebar chrome. There is no shared top-level layout beyond the root `app/layout.jsx` (fonts, Redux
 `StoreProvider`, `react-hot-toast`'s `Toaster`).
 
 ### 1. Customer storefront — `src/app/(public)/`
 
-Routes: `page.jsx` (home), `shop/`, `shop/[username]/`, `product/[productId]/`, `cart/`, `orders/`,
-`pricing/`, `create-store/`, `loading/`.
+Routes: `page.jsx` (home), `shop/`, `product/[productId]/`, `cart/`, `orders/`, `pricing/`, `loading/`.
 
 Layout (`src/app/(public)/layout.jsx`) wraps pages with `Banner` → `Navbar` → page content → `Footer`
 (all in `src/components/`). Home page composes `Hero`, `CategoriesMarquee`, `LatestProducts`, `BestSelling`,
@@ -66,20 +65,13 @@ Layout (`src/app/(public)/layout.jsx`) wraps pages with `Banner` → `Navbar` �
 
 ### 2. Admin dashboard — `src/app/admin/`
 
-Routes: `page.jsx` (dashboard), `approve/`, `coupons/`, `stores/`.
+Routes: `page.jsx` (dashboard), `add-product/`, `manage-product/`, `orders/`, `coupons/`.
 
-Layout uses `src/components/admin/AdminLayout.jsx` (+ `AdminNavbar`, `AdminSidebar`). Gates client-side on
+Layout uses `src/features/admin/AdminLayout.jsx` (+ `AdminNavbar`, `AdminSidebar`). Gates client-side on
 `user.role === 'ADMIN'` — see [Auth caveats](#auth-is-real-but-theres-no-server-side-session-layer).
+Includes product management, order management, and coupon management functions.
 
-### 3. Store (seller) dashboard — `src/app/store/`
-
-Routes: `page.jsx` (dashboard), `add-product/`, `manage-product/`, `orders/`.
-
-Layout uses `src/components/store/StoreLayout.jsx` (+ `StoreNavbar`, `StoreSidebar`). **Also gates on
-`user.role === 'ADMIN'`**, not `SELLER`, even though `UserRole` includes a distinct `SELLER` value —
-don't assume a `SELLER` account has access here without checking `StoreLayout.jsx` first.
-
-### Outside the three trees — `src/app/login/`, `src/app/signup/`, `src/app/profile/`
+### Outside the two trees — `src/app/login/`, `src/app/signup/`, `src/app/profile/`
 
 Real, working auth pages added after the original GoCart layout was set up. They don't use
 `Banner`/`Navbar`/`Footer` and have no shared chrome of their own.
@@ -204,9 +196,9 @@ All form submit handlers have been implemented against the backend via the featu
 
 | Location | Handler | API module | Status |
 |---|---|---|---|
-| `src/app/store/add-product/page.jsx` | `onSubmitHandler` | `productApi.js` → `createProduct()` | ✅ implemented — `POST /api/products` with `FormData`, uploads images |
-| `src/app/store/manage-product/page.jsx` | `toggleStock` and others | `productApi.js` → `updateProduct()` | ✅ implemented — `PUT`/`DELETE` on `/api/products/[id]` |
-| `src/app/store/orders/page.jsx` | `updateOrderStatus` | `orderApi.js` → `updateOrder()` | ✅ implemented — `PUT /api/orders/[id]` |
+| `src/app/admin/add-product/page.jsx` | `onSubmitHandler` | `productApi.js` → `createProduct()` | ✅ implemented — `POST /api/products` with `FormData`, uploads images |
+| `src/app/admin/manage-product/page.jsx` | `toggleStock` and others | `productApi.js` → `updateProduct()` | ✅ implemented — `PUT`/`DELETE` on `/api/products/[id]` |
+| `src/app/admin/orders/page.jsx` | `updateOrderStatus` | `orderApi.js` → `updateOrder()` | ✅ implemented — `PUT /api/orders/[id]` |
 | `src/components/OrderSummary.jsx` | `handleCouponCode` / `handlePlaceOrder` | `couponApi.js`, `orderApi.js` | ✅ implemented — `/api/coupons`, `/api/orders` |
 | `src/components/AddressModal.jsx` | `handleSubmit` | `addressApi.js` → `createAddress()` | ✅ implemented — `/api/addresses` |
 | `src/components/RatingModal.jsx` | `handleSubmit` | `ratingApi.js` → `createRating()` | ✅ implemented — `/api/ratings` |
@@ -228,10 +220,9 @@ All of these are routed through `src/features/auth/api/authApi.js`, which suppor
 `user` Redux slice (`state.user.current`); `Navbar.jsx` reads this to render `Hi, {user.name}` instead of a
 "Login" link.
 
-`User.role` is checked **client-side only**, in `src/components/admin/AdminLayout.jsx` and
-`src/components/store/StoreLayout.jsx` (both require `role === 'ADMIN'`). **There is no `middleware.js`
+`User.role` is checked **client-side only**, in `src/features/admin/AdminLayout.jsx` (requires `role === 'ADMIN'`). **There is no `middleware.js`
 and no server-side session/route protection** — `state.user.current` is just client-side UI state
-populated by the login flow, not a verified session. Don't assume `src/app/admin` or `src/app/store` are
+populated by the login flow, not a verified session. Don't assume `src/app/admin` is
 actually access-controlled server-side; a user who directly navigates there without going through the
 client-side check (or with client JS disabled) is not blocked by anything on the server.
 
@@ -247,14 +238,13 @@ client-side check (or with client JS disabled) is not blocked by anything on the
   - `api/<name>MockData.js` (fixture data for development)
 - **Currency**: read from `process.env.NEXT_PUBLIC_CURRENCY_SYMBOL` with a `'$'` fallback, repeated
   per-component (`const currency = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '$'`) rather than a shared
-  helper — match this in new components. Some older components hardcode a literal `$`/`₹` instead (e.g.
-  the order-detail modal in `src/app/store/orders/page.jsx`) — the pattern isn't applied everywhere.
+  helper — match this in new components. Some older components hardcode a literal `$`/`₹` instead — the pattern isn't applied everywhere.
 - **Images**: `next.config.mjs` sets `images.unoptimized = true` — `next/image` is used, but images are
   served unoptimized (no Next.js image optimization pipeline, since there's no server-side image infra
   configured for this deployment).
 - **Font**: `Outfit` via `next/font/google`, set up once in the root `src/app/layout.jsx`.
 - **Category lists are duplicated, not shared**: `src/assets/assets.js` exports a short `categories` list
-  for the storefront, while `src/app/store/add-product/page.jsx` hardcodes its own longer, different category
+  for the storefront, while `src/app/admin/add-product/page.jsx` hardcodes its own longer, different category
   array inline. There's no single source of truth — update both if a category list needs to change.
 
 ## Environment variables

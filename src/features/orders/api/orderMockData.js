@@ -1,5 +1,5 @@
 // Fixtures for the `Order`/`OrderItem` models (GET/POST /api/orders,
-// PUT /api/orders/:id). Statuses match the enum app/store/orders/page.jsx
+// PUT /api/orders/:id). Statuses match the enum app/admin/orders/page.jsx
 // cycles through: ORDER_PLACED, PROCESSING, SHIPPED, DELIVERED.
 import { productMockData } from '@/features/products/api/productMockData'
 import { mockAddresses } from '@/features/cart/api/addressMockData'
