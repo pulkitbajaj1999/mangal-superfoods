@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
 import { setUser } from '@/lib/features/user/userSlice'
+import { apiFetch } from '@/lib/apiClient'
 import toast from 'react-hot-toast'
 
 export default function SignupPage() {
@@ -36,7 +37,7 @@ export default function SignupPage() {
     }
 
     // Check if user already exists in database
-    const userRes = await fetch(`/api/users?mobile=${mobile}`)
+    const userRes = await apiFetch(`/api/users?mobile=${mobile}`)
     if (userRes.ok) {
       setError('Mobile number already registered. Please log in instead.')
       toast.error('Mobile number already registered. Please log in instead.')
@@ -44,7 +45,7 @@ export default function SignupPage() {
     }
 
     try {
-      const res = await fetch('/api/sms/send', {
+      const res = await apiFetch('/api/sms/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile }),
@@ -70,7 +71,7 @@ export default function SignupPage() {
   const handleOtpSubmit = async (e) => {
     e.preventDefault()
     try {
-      const res = await fetch('/api/sms/verify', {
+      const res = await apiFetch('/api/sms/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile, otp }),
@@ -128,7 +129,7 @@ export default function SignupPage() {
     try {
       // Create user in database
       const userId = `user_${Date.now()}`
-      const res = await fetch('/api/users', {
+      const res = await apiFetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

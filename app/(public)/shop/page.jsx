@@ -5,6 +5,7 @@ import { MoveLeftIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSelector, useDispatch } from "react-redux"
 import { setProduct, setBestSelling } from "@/lib/features/product/productSlice"
+import { apiFetch } from "@/lib/apiClient"
 
  function ShopContent() {
 
@@ -21,7 +22,7 @@ import { setProduct, setBestSelling } from "@/lib/features/product/productSlice"
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const response = await fetch('/api/products')
+                const response = await apiFetch('/api/products')
                 if (response.ok) {
                     const data = await response.json()
                     dispatch(setProduct(data))

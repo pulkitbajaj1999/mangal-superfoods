@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
 import { setUser } from '@/lib/features/user/userSlice'
+import { apiFetch } from '@/lib/apiClient'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
@@ -41,7 +42,7 @@ export default function LoginPage() {
     }
 
     // Check if user exists in database
-    const userRes = await fetch(`/api/users?mobile=${mobile}`)
+    const userRes = await apiFetch(`/api/users?mobile=${mobile}`)
     if (!userRes.ok) {
       setError('Mobile number not registered. Please sign up first.')
       toast.error('Mobile number not registered. Please sign up first.')
@@ -59,7 +60,7 @@ export default function LoginPage() {
       }
 
       try {
-        const authRes = await fetch('/api/auth/login', {
+        const authRes = await apiFetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mobile, password }),
@@ -88,7 +89,7 @@ export default function LoginPage() {
     }
 
     try {
-      const res = await fetch('/api/sms/send', {
+      const res = await apiFetch('/api/sms/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile }),
@@ -114,7 +115,7 @@ export default function LoginPage() {
   const handleOtpSubmit = async (e) => {
     e.preventDefault()
     try {
-      const res = await fetch('/api/sms/verify', {
+      const res = await apiFetch('/api/sms/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile, otp }),

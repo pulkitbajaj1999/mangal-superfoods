@@ -3,6 +3,7 @@ import PageTitle from "@/components/PageTitle"
 import { useEffect, useState } from "react";
 import OrderItem from "@/components/OrderItem";
 import { useSelector } from "react-redux";
+import { apiFetch } from "@/lib/apiClient";
 
 export default function Orders() {
 
@@ -17,7 +18,7 @@ export default function Orders() {
         }
 
         try {
-            const response = await fetch(`/api/orders?userId=${user.id}`);
+            const response = await apiFetch(`/api/orders?userId=${user.id}`);
             if (response.ok) {
                 const data = await response.json();
                 setOrders(data);

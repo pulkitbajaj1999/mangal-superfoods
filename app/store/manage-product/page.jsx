@@ -5,6 +5,7 @@ import Image from "next/image"
 import Loading from "@/components/Loading"
 import { Edit, Trash2, X } from "lucide-react"
 import { assets } from "@/assets/assets"
+import { apiFetch } from "@/lib/apiClient"
 
 export default function StoreManageProducts() {
 
@@ -24,7 +25,7 @@ export default function StoreManageProducts() {
 
     const fetchProducts = async () => {
         try {
-            const response = await fetch('/api/products');
+            const response = await apiFetch('/api/products');
             if (response.ok) {
                 const data = await response.json();
                 setProducts(data);
@@ -41,7 +42,7 @@ export default function StoreManageProducts() {
         if (!product) return;
 
         try {
-            const response = await fetch(`/api/products/${productId}`, {
+            const response = await apiFetch(`/api/products/${productId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ inStock: !product.inStock }),
@@ -83,7 +84,7 @@ export default function StoreManageProducts() {
         if (!productToDelete) return;
 
         try {
-            const response = await fetch(`/api/products/${productToDelete.id}`, {
+            const response = await apiFetch(`/api/products/${productToDelete.id}`, {
                 method: 'DELETE',
             });
             if (response.ok) {
@@ -159,7 +160,7 @@ export default function StoreManageProducts() {
         // }
 
         try {
-            const response = await fetch(`/api/products/${selectedProduct.id}`, {
+            const response = await apiFetch(`/api/products/${selectedProduct.id}`, {
                 method: 'PUT',
                 body: formData,
                 // headers: { 'Content-Type': 'application/json' },

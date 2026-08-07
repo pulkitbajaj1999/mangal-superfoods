@@ -5,6 +5,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { addAddress } from '../lib/features/address/addressSlice';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { apiFetch } from '@/lib/apiClient';
 
 const OrderSummary = ({ totalPrice, items }) => {
 
@@ -25,7 +26,7 @@ const OrderSummary = ({ totalPrice, items }) => {
     useEffect(() => {
         const fetchAddresses = async () => {
             try {
-                const response = await fetch('/api/addresses');
+                const response = await apiFetch('/api/addresses');
                 if (response.ok) {
                     const data = await response.json();
                     data.forEach(addr => dispatch(addAddress(addr)));
@@ -44,7 +45,7 @@ const OrderSummary = ({ totalPrice, items }) => {
         event.preventDefault();
         
         try {
-            const response = await fetch('/api/coupons');
+            const response = await apiFetch('/api/coupons');
             if (response.ok) {
                 const coupons = await response.json();
                 const foundCoupon = coupons.find(c => c.code.toLowerCase() === couponCodeInput.toLowerCase());
@@ -90,7 +91,7 @@ const OrderSummary = ({ totalPrice, items }) => {
         }
 
         try {
-            const response = await fetch('/api/orders', {
+            const response = await apiFetch('/api/orders', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderData),

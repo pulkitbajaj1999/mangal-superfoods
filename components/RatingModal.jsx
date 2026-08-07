@@ -4,6 +4,7 @@ import { Star } from 'lucide-react';
 import React, { useState } from 'react'
 import { XIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { apiFetch } from '@/lib/apiClient';
 
 const RatingModal = ({ ratingModal, setRatingModal }) => {
 
@@ -29,7 +30,7 @@ const RatingModal = ({ ratingModal, setRatingModal }) => {
         }
 
         try {
-            const response = await fetch('/api/ratings', {
+            const response = await apiFetch('/api/ratings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(ratingData),

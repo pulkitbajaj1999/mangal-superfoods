@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import Loading from "@/components/Loading"
 import { RefreshCw } from "lucide-react"
+import { apiFetch } from "@/lib/apiClient"
 
 export default function StoreOrders() {
     const [orders, setOrders] = useState([])
@@ -16,7 +17,7 @@ export default function StoreOrders() {
 
     const fetchOrders = async () => {
         try {
-            const response = await fetch('/api/orders');
+            const response = await apiFetch('/api/orders');
             if (response.ok) {
                 const data = await response.json();
                 setOrders(data);
@@ -51,7 +52,7 @@ export default function StoreOrders() {
     const updateOrderStatus = async (orderId, status) => {
         try {
             setRefreshingOrderId(orderId);
-            const response = await fetch(`/api/orders/${orderId}`, {
+            const response = await apiFetch(`/api/orders/${orderId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status })

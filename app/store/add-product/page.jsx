@@ -3,6 +3,7 @@ import { assets } from "@/assets/assets"
 import Image from "next/image"
 import { useState } from "react"
 import { toast } from "react-hot-toast"
+import { apiFetch } from "@/lib/apiClient"
 
 export default function StoreAddProduct() {
 
@@ -52,7 +53,7 @@ export default function StoreAddProduct() {
         // }
         
         try {
-            const response = await fetch('/api/products', {
+            const response = await apiFetch('/api/products', {
                 method: 'POST',
                 // headers: { 'Content-Type': 'multipart/form-data' },
                 // body: JSON.stringify(productData),

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
 import { updateProfile } from '@/lib/features/user/userSlice'
+import { apiFetch } from '@/lib/apiClient'
 import toast from 'react-hot-toast'
 
 export default function ProfilePage() {
@@ -40,7 +41,7 @@ export default function ProfilePage() {
     setIsLoading(true)
     try {
       // Update user in database
-      const res = await fetch('/api/users', {
+      const res = await apiFetch('/api/users', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
