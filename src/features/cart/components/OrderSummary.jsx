@@ -5,7 +5,9 @@ import { useSelector, useDispatch } from 'react-redux';
 import { addAddress } from '@/features/cart/addressSlice';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
-import { apiFetch } from '@/services/apiClient';
+import { getAddresses } from '@/features/cart/api/addressApi';
+import { getCoupons } from '@/features/coupons/api/couponApi';
+import { createOrder } from '@/features/orders/api/orderApi';
 
 const OrderSummary = ({ totalPrice, items }) => {
 
@@ -26,7 +28,7 @@ const OrderSummary = ({ totalPrice, items }) => {
     useEffect(() => {
         const fetchAddresses = async () => {
             try {
-                const response = await apiFetch('/api/addresses');
+                const response = await getAddresses();
                 if (response.ok) {
                     const data = await response.json();
                     data.forEach(addr => dispatch(addAddress(addr)));
@@ -45,7 +47,7 @@ const OrderSummary = ({ totalPrice, items }) => {
         event.preventDefault();
         
         try {
-            const response = await apiFetch('/api/coupons');
+            const response = await getCoupons();
             if (response.ok) {
                 const coupons = await response.json();
                 const foundCoupon = coupons.find(c => c.code.toLowerCase() === couponCodeInput.toLowerCase());
@@ -91,11 +93,7 @@ const OrderSummary = ({ totalPrice, items }) => {
         }
 
         try {
-            const response = await apiFetch('/api/orders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData),
-            })
+            const response = await createOrder(orderData)
 
             if (response.ok) {
                 toast.success('Order placed successfully');

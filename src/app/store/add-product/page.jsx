@@ -3,7 +3,7 @@ import { assets } from "@/assets/assets"
 import Image from "next/image"
 import { useState } from "react"
 import { toast } from "react-hot-toast"
-import { apiFetch } from "@/services/apiClient"
+import { createProduct } from "@/features/products/api/productApi"
 
 export default function StoreAddProduct() {
 
@@ -53,13 +53,8 @@ export default function StoreAddProduct() {
         // }
         
         try {
-            const response = await apiFetch('/api/products', {
-                method: 'POST',
-                // headers: { 'Content-Type': 'multipart/form-data' },
-                // body: JSON.stringify(productData),
-                body: formData
-            })
-            
+            const response = await createProduct(formData)
+
             if (response.ok) {
                 toast.success('Product added successfully')
                 // Reset form

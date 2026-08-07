@@ -4,10 +4,13 @@ import { Star } from 'lucide-react';
 import React, { useState } from 'react'
 import { XIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { apiFetch } from '@/services/apiClient';
+import { useDispatch } from 'react-redux';
+import { createRating } from '@/features/reviews/api/ratingApi';
+import { addRating } from '@/features/reviews/ratingSlice';
 
 const RatingModal = ({ ratingModal, setRatingModal }) => {
 
+    const dispatch = useDispatch();
     const [rating, setRating] = useState(0);
     const [review, setReview] = useState('');
 
@@ -30,13 +33,10 @@ const RatingModal = ({ ratingModal, setRatingModal }) => {
         }
 
         try {
-            const response = await apiFetch('/api/ratings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(ratingData),
-            })
+            const response = await createRating(ratingData)
 
             if (response.ok) {
+                dispatch(addRating(ratingData));
                 toast.success('Rating submitted successfully')
                 setRatingModal(null);
             } else {

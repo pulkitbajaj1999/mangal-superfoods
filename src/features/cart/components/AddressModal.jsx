@@ -4,7 +4,7 @@ import { useState } from "react"
 import { toast } from "react-hot-toast"
 import { useSelector, useDispatch } from "react-redux"
 import { addAddress } from '@/features/cart/addressSlice';
-import { apiFetch } from '@/services/apiClient';
+import { createAddress } from '@/features/cart/api/addressApi';
 
 const AddressModal = ({ setShowAddressModal, onAddressAdded }) => {
     const dispatch = useDispatch()
@@ -54,11 +54,7 @@ const AddressModal = ({ setShowAddressModal, onAddressAdded }) => {
         }
 
         try {
-            const response = await apiFetch('/api/addresses', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(addressData),
-            })
+            const response = await createAddress(addressData)
 
             if (response.ok) {
                 const newAddress = await response.json();

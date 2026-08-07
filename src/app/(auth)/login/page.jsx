@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
 import { setUser } from '@/features/auth/userSlice'
-import { apiFetch } from '@/services/apiClient'
+import { getUserByMobile, login as loginApi, sendOtp, verifyOtp } from '@/features/auth/api/authApi'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
@@ -42,7 +42,7 @@ export default function LoginPage() {
     }
 
     // Check if user exists in database
-    const userRes = await apiFetch(`/api/users?mobile=${mobile}`)
+    const userRes = await getUserByMobile(mobile)
     if (!userRes.ok) {
       setError('Mobile number not registered. Please sign up first.')
       toast.error('Mobile number not registered. Please sign up first.')
@@ -60,11 +60,7 @@ export default function LoginPage() {
       }
 
       try {
-        const authRes = await apiFetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mobile, password }),
-        })
+        const authRes = await loginApi(mobile, password)
 
         const authData = await authRes.json()
         if (!authRes.ok || !authData.success) {
@@ -89,11 +85,7 @@ export default function LoginPage() {
     }
 
     try {
-      const res = await apiFetch('/api/sms/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile }),
-      })
+      const res = await sendOtp(mobile)
 
       const data = await res.json()
       if (!res.ok) {
@@ -115,11 +107,7 @@ export default function LoginPage() {
   const handleOtpSubmit = async (e) => {
     e.preventDefault()
     try {
-      const res = await apiFetch('/api/sms/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile, otp }),
-      })
+      const res = await verifyOtp(mobile, otp)
 
       const data = await res.json()
       if (!res.ok || !data.success) {

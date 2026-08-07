@@ -57,6 +57,12 @@ The backend exposes (see its own `CLAUDE.md`/`README.md` for implementation deta
 
 Because the backend is a separate origin, it enables CORS for the frontend's origin (`FRONTEND_ORIGIN` env var on the backend) — if you add a new frontend origin (e.g. a new deployment URL), that env var needs updating on the backend side too, or requests will be blocked by the browser.
 
+### Mock API layer — `NEXT_PUBLIC_USE_MOCK_API`
+
+Every feature that talks to the backend has an `api/` folder alongside its slice/components (e.g. `src/features/products/api/`, `src/features/orders/api/`, `src/features/cart/api/`, `src/features/coupons/api/`, `src/features/reviews/api/`, `src/features/auth/api/`), each holding a `<name>Api.js` + a `<name>MockData.js`. Pages/components import from these `*Api.js` modules — not `apiFetch` directly — and every exported function returns the same Response-like shape (`.ok`/`.json()`) whether it hits the real backend or mock fixtures, so call sites never branch on the toggle themselves.
+
+`src/config/api.js` exports `USE_MOCK_API` (reads `NEXT_PUBLIC_USE_MOCK_API`, default `false`). When `true`, every `*Api.js` module resolves against its in-memory `*MockData.js` fixtures (mutated in place for creates/updates/deletes, but reset on page reload) instead of calling `apiFetch`/the backend — useful for running the frontend with zero backend/DB dependency. `src/services/mockUtils.js`'s `mockResponse()` is the shared helper that builds that fake Response. Mock auth fixtures (`src/features/auth/api/authMockData.js`) document three ready-to-use mobile/password logins (CUSTOMER/SELLER/ADMIN) and a fixed mock OTP; see that file's comments.
+
 ### Most write actions are now implemented — only the vendor/admin stubs remain
 
 Earlier in this repo's history, form submit handlers were wired up to the UI (state, validation, `toast.promise(...)` loading/success/error UX) with a bare `// Logic to ...` comment and no implementation. **Most of these have since been implemented** and now call the API routes above:

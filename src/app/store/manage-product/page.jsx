@@ -5,7 +5,7 @@ import Image from "next/image"
 import Loading from "@/components/ui/Loading"
 import { Edit, Trash2, X } from "lucide-react"
 import { assets } from "@/assets/assets"
-import { apiFetch } from "@/services/apiClient"
+import { getProducts, updateProduct, deleteProduct } from "@/features/products/api/productApi"
 
 export default function StoreManageProducts() {
 
@@ -25,7 +25,7 @@ export default function StoreManageProducts() {
 
     const fetchProducts = async () => {
         try {
-            const response = await apiFetch('/api/products');
+            const response = await getProducts();
             if (response.ok) {
                 const data = await response.json();
                 setProducts(data);
@@ -42,11 +42,7 @@ export default function StoreManageProducts() {
         if (!product) return;
 
         try {
-            const response = await apiFetch(`/api/products/${productId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ inStock: !product.inStock }),
-            });
+            const response = await updateProduct(productId, { inStock: !product.inStock });
             if (response.ok) {
                 // Update local state
                 setProducts(products.map(p => p.id === productId ? { ...p, inStock: !p.inStock } : p));
@@ -84,9 +80,7 @@ export default function StoreManageProducts() {
         if (!productToDelete) return;
 
         try {
-            const response = await apiFetch(`/api/products/${productToDelete.id}`, {
-                method: 'DELETE',
-            });
+            const response = await deleteProduct(productToDelete.id);
             if (response.ok) {
                 setProducts(products.filter(p => p.id !== productToDelete.id));
                 toast.success('Product deleted successfully');
@@ -160,20 +154,7 @@ export default function StoreManageProducts() {
         // }
 
         try {
-            const response = await apiFetch(`/api/products/${selectedProduct.id}`, {
-                method: 'PUT',
-                body: formData,
-                // headers: { 'Content-Type': 'application/json' },
-                // body: JSON.stringify({
-                //     name: selectedProduct.name,
-                //     description: selectedProduct.description,
-                //     mrp: parseFloat(selectedProduct.mrp),
-                //     price: parseFloat(selectedProduct.price),
-                //     category: selectedProduct.category,
-                //     inStock: selectedProduct.inStock,
-                //     images: imageUrls.length > 0 ? imageUrls : selectedProduct.images,
-                // }),
-            });
+            const response = await updateProduct(selectedProduct.id, formData);
             if (response.ok) {
                 const updatedProduct = await response.json();
                 setProducts(products.map(p => p.id === selectedProduct.id ? updatedProduct : p));

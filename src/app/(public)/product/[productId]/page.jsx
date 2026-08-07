@@ -4,7 +4,7 @@ import ProductDetails from "@/features/products/components/ProductDetails";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { apiFetch } from "@/services/apiClient";
+import { getProductById } from "@/features/products/api/productApi";
 
 export default function Product() {
 
@@ -24,7 +24,7 @@ export default function Product() {
 
         // If not in Redux, fetch from API
         try {
-            const response = await apiFetch(`/api/products/${productId}`);
+            const response = await getProductById(productId);
             if (response.ok) {
                 const data = await response.json();
                 setProduct(data);

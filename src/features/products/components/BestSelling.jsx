@@ -3,7 +3,7 @@ import Title from '@/components/ui/Title'
 import ProductCard from './ProductCard'
 import { useSelector, useDispatch } from 'react-redux'
 import { setBestSelling } from '@/features/products/productSlice'
-import { apiFetch } from '@/services/apiClient'
+import { getProducts } from '@/features/products/api/productApi'
 import { useEffect, useState } from 'react'
 
 const BestSelling = () => {
@@ -22,7 +22,7 @@ const BestSelling = () => {
             } else {
                 // If no products, fetch all
                 try {
-                    const response = await apiFetch('/api/products')
+                    const response = await getProducts()
                     if (response.ok) {
                         const data = await response.json()
                         const bestSelling = data.slice().sort((a, b) => b.rating.length - a.rating.length).slice(0, 8)

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import Loading from "@/components/ui/Loading"
 import { RefreshCw } from "lucide-react"
-import { apiFetch } from "@/services/apiClient"
+import { getOrders, updateOrderStatus as updateOrderStatusApi } from "@/features/orders/api/orderApi"
 
 export default function StoreOrders() {
     const [orders, setOrders] = useState([])
@@ -17,7 +17,7 @@ export default function StoreOrders() {
 
     const fetchOrders = async () => {
         try {
-            const response = await apiFetch('/api/orders');
+            const response = await getOrders();
             if (response.ok) {
                 const data = await response.json();
                 setOrders(data);
@@ -52,12 +52,8 @@ export default function StoreOrders() {
     const updateOrderStatus = async (orderId, status) => {
         try {
             setRefreshingOrderId(orderId);
-            const response = await apiFetch(`/api/orders/${orderId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status })
-            });
-            
+            const response = await updateOrderStatusApi(orderId, status);
+
             if (response.ok) {
                 // Update the local state
                 setOrders(orders.map(order => 

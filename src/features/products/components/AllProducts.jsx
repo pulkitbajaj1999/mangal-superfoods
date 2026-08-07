@@ -3,7 +3,7 @@ import Title from '@/components/ui/Title'
 import ProductCard from './ProductCard'
 import { useSelector, useDispatch } from 'react-redux'
 import { setProduct, setBestSelling } from '@/features/products/productSlice'
-import { apiFetch } from '@/services/apiClient'
+import { getProducts } from '@/features/products/api/productApi'
 import { useEffect, useState } from 'react'
 
 const AllProducts = () => {
@@ -15,7 +15,7 @@ const AllProducts = () => {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const response = await apiFetch('/api/products')
+                const response = await getProducts()
                 if (response.ok) {
                     const data = await response.json()
                     dispatch(setProduct(data))
