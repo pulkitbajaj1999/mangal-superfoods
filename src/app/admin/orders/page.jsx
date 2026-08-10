@@ -1,8 +1,9 @@
 'use client'
 import { useEffect, useState } from "react"
 import Loading from "@/components/ui/Loading"
-import { RefreshCw } from "lucide-react"
+import { ImageIcon, RefreshCw } from "lucide-react"
 import { getOrders, updateOrderStatus as updateOrderStatusApi } from "@/features/orders/api/orderApi"
+import { getProductImageSrc } from "@/features/products/utils/productImage"
 
 export default function StoreOrders() {
     const [orders, setOrders] = useState([])
@@ -236,20 +237,29 @@ export default function StoreOrders() {
                         <div className="mb-4">
                             <h3 className="font-semibold mb-2">Products</h3>
                             <div className="space-y-2">
-                                {selectedOrder.orderItems.map((item, i) => (
+                                {(selectedOrder.orderItems || []).map((item, i) => {
+                                    const imageSrc = getProductImageSrc(item.product);
+                                    return (
                                     <div key={i} className="flex items-center gap-4 border border-slate-100 shadow rounded p-2">
-                                        <img
-                                            src={item.product.images?.[0].src || item.product.images?.[0]}
-                                            alt={item.product?.name}
-                                            className="w-16 h-16 object-cover rounded"
-                                        />
+                                        {imageSrc ? (
+                                            <img
+                                                src={imageSrc}
+                                                alt={item.product?.name || 'product image'}
+                                                className="w-16 h-16 object-cover rounded"
+                                            />
+                                        ) : (
+                                            <div className="w-16 h-16 flex items-center justify-center bg-slate-100 text-slate-400 rounded">
+                                                <ImageIcon size={20} />
+                                            </div>
+                                        )}
                                         <div className="flex-1">
                                             <p className="text-slate-800">{item.product?.name}</p>
                                             <p>Qty: {item.quantity}</p>
                                             <p>Price: ${item.price}</p>
                                         </div>
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
 

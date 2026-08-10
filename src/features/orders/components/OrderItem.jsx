@@ -1,6 +1,6 @@
 'use client'
 import Image from "next/image";
-import { DotIcon } from "lucide-react";
+import { DotIcon, ImageIcon } from "lucide-react";
 import { useSelector } from "react-redux";
 import Rating from "@/features/reviews/components/Rating";
 import { useState } from "react";
@@ -18,16 +18,22 @@ const OrderItem = ({ order }) => {
             <tr className="text-sm">
                 <td className="text-left">
                     <div className="flex flex-col gap-6">
-                        {order.orderItems.map((item, index) => (
+                        {(order.orderItems || []).map((item, index) => {
+                            const imageSrc = getProductImageSrc(item.product);
+                            return (
                             <div key={index} className="flex items-center gap-4">
                                 <div className="w-20 aspect-square bg-slate-100 flex items-center justify-center rounded-md">
-                                    <Image
-                                        className="h-14 w-auto"
-                                        src={item.product.images[0]}
-                                        alt="product_img"
-                                        width={50}
-                                        height={50}
-                                    />
+                                    {imageSrc ? (
+                                        <Image
+                                            className="h-14 w-auto"
+                                            src={imageSrc}
+                                            alt="product_img"
+                                            width={50}
+                                            height={50}
+                                        />
+                                    ) : (
+                                        <ImageIcon size={24} className="text-slate-400" />
+                                    )}
                                 </div>
                                 <div className="flex flex-col justify-center text-sm">
                                     <p className="font-medium text-slate-600 text-base">{item.product.name}</p>
@@ -41,7 +47,8 @@ const OrderItem = ({ order }) => {
                                     {ratingModal && <RatingModal ratingModal={ratingModal} setRatingModal={setRatingModal} />}
                                 </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </td>
 
